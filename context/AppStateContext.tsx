@@ -9,6 +9,8 @@ import {
   MedicalReport,
   UploadedFile,
   FamilyMember,
+  DoctorNote,
+  AppointmentRecommendation,
 } from '@/types';
 import {
   familyMembers as initialFamilyMembers,
@@ -17,6 +19,8 @@ import {
   initialTimeline,
   initialNotifications,
   initialReports,
+  initialDoctorNotes,
+  initialAppointmentRecommendations,
   demoDoctor,
 } from '@/data/mockData';
 import { compareReports } from '@/lib/compareReports';
@@ -34,15 +38,23 @@ interface AppState {
   approvals: ApprovalRecord[];
   timeline: TimelineEvent[];
   notifications: AppNotification[];
+  doctorNotes: DoctorNote[];
+  appointmentRecommendations: AppointmentRecommendation[];
   getMemberReports: (id: string) => MedicalReport[];
   getMemberTimeline: (id: string) => TimelineEvent[];
   getMemberConsent: (id: string) => ConsentRecord;
   getMemberApproval: (id: string) => ApprovalRecord | undefined;
+  getMemberNotes: (id: string) => DoctorNote[];
+  getMemberLatestNote: (id: string) => DoctorNote | undefined;
+  getMemberLatestAppointment: (id: string) => AppointmentRecommendation | undefined;
   grantAccess: (familyMemberId: string) => void;
   revokeAccess: (familyMemberId: string) => void;
   approveUpdate: (familyMemberId: string) => void;
   addReport: (report: MedicalReport, file?: UploadedFile) => void;
   markNotificationRead: (id: string) => void;
+  addDoctorNote: (familyMemberId: string, message: string, reportId?: string) => void;
+  addAppointmentRecommendation: (familyMemberId: string, needed: boolean, note?: string) => void;
+  dismissAppointmentRecommendation: (id: string) => void;
 }
 
 const AppStateContext = createContext<AppState | undefined>(undefined);
@@ -60,6 +72,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [approvals, setApprovals] = useState<ApprovalRecord[]>(initialApprovals);
   const [timeline, setTimeline] = useState<TimelineEvent[]>(initialTimeline);
   const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications);
+  const [doctorNotes, setDoctorNotes] = useState<DoctorNote[]>(initialDoctorNotes);
+  const [appointmentRecommendations, setAppointmentRecommendations] = useState<AppointmentRecommendation[]>(initialAppointmentRecommendations);
   const today = new Date().toISOString().split('T')[0];
 
   function selectFamilyMember(id: string) {
@@ -89,6 +103,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setConsentRecords((prev) => prev.filter((consent) => consent.familyMemberId !== id));
     setApprovals((prev) => prev.filter((approval) => approval.familyMemberId !== id));
     setUploadedFiles((prev) => prev.filter((file) => file.familyMemberId !== id));
+    setDoctorNotes((prev) => prev.filter((note) => note.familyMemberId !== id));
+    setAppointmentRecommendations((prev) => prev.filter((recommendation) => recommendation.familyMemberId !== id));
   }
 
   function getMemberReports(id: string) {
@@ -111,6 +127,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   function getMemberApproval(id: string) {
     return approvals.find((approval) => approval.familyMemberId === id);
+  }
+
+  function getMemberNotes(id: string) {
+    return doctorNotes.filter((note) => note.familyMemberId === id);
+  }
+
+  function getMemberLatestNote(id: string) {
+    const notes = getMemberNotes(id);
+    return notes.length ? notes.reduce((latest, note) => note.date >= latest.date ? note : latest) : undefined;
+  }
+
+  function getMemberLatestAppointment(id: string) {
+    const appointments = appointmentRecommendations.filter((recommendation) => recommendation.familyMemberId === id && !recommendation.dismissed);
+    return appointments.length ? appointments.reduce((latest, appointment) => appointment.date >= latest.date ? appointment : latest) : undefined;
   }
 
   function grantAccess(familyMemberId: string) {
@@ -155,8 +185,24 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.map((notification) => notification.id === id ? { ...notification, read: true } : notification));
   }
 
+  function addDoctorNote(familyMemberId: string, message: string, reportId?: string) {
+    const member = familyMembers.find((candidate) => candidate.id === familyMemberId);
+    setDoctorNotes((prev) => [{ id: createId('note'), familyMemberId, reportId, date: today, doctorName: demoDoctor.name, message }, ...prev]);
+    setTimeline((prev) => [{ id: createId('evt'), familyMemberId, date: today, type: 'update', title: 'Doctor added a note', description: `${demoDoctor.name} sent ${member?.name ?? 'the patient'} a new note or suggestion.` }, ...prev]);
+  }
+
+  function addAppointmentRecommendation(familyMemberId: string, needed: boolean, note?: string) {
+    const member = familyMembers.find((candidate) => candidate.id === familyMemberId);
+    setAppointmentRecommendations((prev) => [{ id: createId('appt'), familyMemberId, date: today, doctorName: demoDoctor.name, needed, note, dismissed: false }, ...prev]);
+    setTimeline((prev) => [{ id: createId('evt'), familyMemberId, date: today, type: 'update', title: needed ? 'Doctor recommended a visit' : 'Doctor marked no visit needed', description: `${demoDoctor.name} updated the visit recommendation for ${member?.name ?? 'the patient'}.` }, ...prev]);
+  }
+
+  function dismissAppointmentRecommendation(id: string) {
+    setAppointmentRecommendations((prev) => prev.map((recommendation) => recommendation.id === id ? { ...recommendation, dismissed: true } : recommendation));
+  }
+
   return (
-    <AppStateContext.Provider value={{ familyMembers, selectedFamilyMemberId, selectFamilyMember, addFamilyMember, updateFamilyMember, removeFamilyMember, reports, uploadedFiles, consentRecords, approvals, timeline, notifications, getMemberReports, getMemberTimeline, getMemberConsent, getMemberApproval, grantAccess, revokeAccess, approveUpdate, addReport, markNotificationRead }}>
+    <AppStateContext.Provider value={{ familyMembers, selectedFamilyMemberId, selectFamilyMember, addFamilyMember, updateFamilyMember, removeFamilyMember, reports, uploadedFiles, consentRecords, approvals, timeline, notifications, doctorNotes, appointmentRecommendations, getMemberReports, getMemberTimeline, getMemberConsent, getMemberApproval, getMemberNotes, getMemberLatestNote, getMemberLatestAppointment, grantAccess, revokeAccess, approveUpdate, addReport, markNotificationRead, addDoctorNote, addAppointmentRecommendation, dismissAppointmentRecommendation }}>
       {children}
     </AppStateContext.Provider>
   );

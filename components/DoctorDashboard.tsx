@@ -14,9 +14,11 @@ import MedicalTimeline from './MedicalTimeline';
 import PatientBriefing from './PatientBriefing';
 import DoctorNotificationCard from './DoctorNotificationCard';
 import OriginalReportPreview from './OriginalReportPreview';
+import DoctorNoteForm from './DoctorNoteForm';
+import AppointmentDecision from './AppointmentDecision';
 
 export default function DoctorDashboard() {
-  const { familyMembers, selectedFamilyMemberId, selectFamilyMember, getMemberReports, getMemberTimeline, getMemberConsent, getMemberApproval, notifications, uploadedFiles, approveUpdate, markNotificationRead } = useAppState();
+  const { familyMembers, selectedFamilyMemberId, selectFamilyMember, getMemberReports, getMemberTimeline, getMemberConsent, getMemberApproval, getMemberLatestAppointment, notifications, uploadedFiles, approveUpdate, markNotificationRead } = useAppState();
   const [showOriginal, setShowOriginal] = useState(false);
   const briefingRef = useRef<HTMLElement>(null);
   const member = familyMembers.find((item) => item.id === selectedFamilyMemberId) ?? familyMembers[0];
@@ -27,6 +29,7 @@ export default function DoctorDashboard() {
   const changes = current && previous && previous.id !== current.id ? compareReports(previous, current) : [];
   const sourceFile = uploadedFiles.find((file) => file.id === current?.sourceFileId);
   const approval = getMemberApproval(member.id);
+  const latestAppointment = getMemberLatestAppointment(member.id);
   const familyPatients: Patient[] = familyMembers.map((familyMember) => { const reports = getMemberReports(familyMember.id); const last = reports[reports.length - 1]; return { id: familyMember.id, name: familyMember.name, age: familyMember.age, gender: familyMember.gender, bloodGroup: familyMember.bloodGroup, lastVisit: last?.date ?? 'no reports yet', avatarInitials: familyMember.avatarInitials }; });
   const doctorNotifications = notifications.filter((notification) => notification.audience === 'doctor' && !notification.read);
 
@@ -45,6 +48,8 @@ export default function DoctorDashboard() {
       <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">reports</p><div className="space-y-2">{previous.id !== current.id && <ReportCard report={previous} tag="previous" />}<ReportCard report={current} tag="current" /></div></section>
       {previous.id !== current.id && <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">compare reports</p><ReportComparison previous={previous} current={current} /></section>}
       {approval && <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">approval</p><ApprovalPanel approval={approval} onApprove={() => approveUpdate(member.id)} /></section>}
+      <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">note for patient</p><DoctorNoteForm familyMemberId={member.id} reportId={current.id} /></section>
+      <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">next visit</p><AppointmentDecision familyMemberId={member.id} latest={latestAppointment} /></section>
       <section><p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">patient timeline</p><MedicalTimeline events={getMemberTimeline(member.id)} /></section>
     </>}
     {showOriginal && <OriginalReportPreview file={sourceFile} onClose={() => setShowOriginal(false)} />}

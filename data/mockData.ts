@@ -7,6 +7,8 @@ import {
   ApprovalRecord,
   ConsentRecord,
   AppNotification,
+  DoctorNote,
+  AppointmentRecommendation,
 } from '@/types';
 
 export const familyMembers: FamilyMember[] = [
@@ -117,4 +119,27 @@ export const initialConsentRecords: ConsentRecord[] = [
 export const initialNotifications: AppNotification[] = [
   { id: 'notif-001', familyMemberId: 'fam-001', familyMemberName: 'Aditi Sharma', date: '2026-09-18', title: 'New report available', message: 'Your follow-up blood work has been added by Dr. Neha Kulkarni.', read: false, audience: 'patient' },
   { id: 'notif-002', familyMemberId: 'fam-002', familyMemberName: 'Sunita Sharma', date: '2026-09-12', title: 'New report uploaded', message: 'New medical report uploaded for Sunita Sharma. 3 changes detected against the previous record.', read: false, audience: 'doctor', briefingAvailable: true },
+];
+
+export const initialDoctorNotes: DoctorNote[] = [
+  {
+    id: 'note-001',
+    familyMemberId: 'fam-001',
+    reportId: 'rep-002',
+    date: '2026-09-18',
+    doctorName: 'Dr. Neha Kulkarni',
+    message: 'Continue the increased Metformin dosage. Check blood pressure at home twice a week and cut down on salt intake.',
+  },
+];
+
+export const initialAppointmentRecommendations: AppointmentRecommendation[] = [
+  {
+    id: 'appt-001',
+    familyMemberId: 'fam-001',
+    date: '2026-09-18',
+    doctorName: 'Dr. Neha Kulkarni',
+    needed: true,
+    note: 'Follow-up visit recommended in 4 weeks to reassess blood sugar levels.',
+    dismissed: false,
+  },
 ];

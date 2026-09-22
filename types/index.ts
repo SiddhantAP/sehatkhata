@@ -124,3 +124,22 @@ export interface UploadedFile {
   url: string;
   uploadedAt: string;
 }
+
+export interface DoctorNote {
+  id: string;
+  familyMemberId: string;
+  reportId?: string;
+  date: string;
+  doctorName: string;
+  message: string;
+}
+
+export interface AppointmentRecommendation {
+  id: string;
+  familyMemberId: string;
+  date: string;
+  doctorName: string;
+  needed: boolean;
+  note?: string;
+  dismissed: boolean;
+}
